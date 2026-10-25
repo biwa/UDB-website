@@ -12,10 +12,10 @@ env = Environment(
     autoescape=select_autoescape()
 )
 
-changelog_xml = tree = ET.parse('../files/Changelog.xml')
+changelog_xml = tree = ET.parse('../output/files/Changelog.xml')
 versions = []
 
-for filename in os.listdir('../files'):
+for filename in os.listdir('../output/files'):
     match = re.match(r'^ultimatedoombuilder-(setup-|)r(\d+)-([a-z0-9]+)\.([a-z0-9]+)$', filename.lower())
     if not match:
         continue
@@ -62,6 +62,6 @@ for dirname, _, filenames in os.walk('.'):
         else:
             with open(fullname, 'rb') as f:
                 content = f.read()
-        target_name = '../' + '/'.join(fullname.split('/')[1:])
+        target_name = '../output/' + '/'.join(fullname.split('/')[1:])
         with open(target_name, 'wb') as f:
             f.write(content)
