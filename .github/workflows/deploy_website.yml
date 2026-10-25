@@ -54,9 +54,9 @@ jobs:
                 # We wouldn't really need the version from Builder, because we know it already, but whatever
                 $builderRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedBuilderExe).ProductPrivatePart
                 $updaterRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedUpdaterExe).ProductPrivatePart
-                Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Version.txt"
-                Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
-                Write-Host "$updaterRev" >> "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
+                $builderRev > "$env:OUTPUT_DIR/$FILES_DIR/Version.txt"
+                $builderRev > "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
+                $updaterRev >> "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
             }
             catch {
                 Write-Error $_.Exception.Message
