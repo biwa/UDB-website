@@ -39,7 +39,7 @@ jobs:
             - name: Extract Builder.exe and Updater.exe from 7z
               run: |
                 mkdir -p "$TEMP_DIR"
-                7z e "$OUTPUT_DIR/$FILES_DIR/UltimateDoomBuilder-$LATEST_TAG.7z" "-o$TEMP_DIR" $BUILDER_EXE $UPDATER_EXE -y
+                7z e "$OUTPUT_DIR/$FILES_DIR/UltimateDoomBuilder-$LATEST_TAG-x64.7z" "-o$TEMP_DIR" $BUILDER_EXE $UPDATER_EXE -y
                 if [ ! -f "$TEMP_DIR/$BUILDER_EXE" ] || [ ! -f "$TEMP_DIR/$UPDATER_EXE" ]; then
                     echo "Extraction failed: $BUILDER_EXE or $UPDATER_EXE not found in $TEMP_DIR"
                     exit 1
