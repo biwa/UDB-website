@@ -25,7 +25,7 @@ jobs:
             - name: Download Last 5 Releases
               run: |
                 # Get the 5 most recent tags in format "Rxxxx", and reverse their order, so that the newest change log files overwrite older ones
-                TAGS=$(gh release list --repo "UltimateDoomBuilder/UltimateDoomBuilder" --limit 5 --json tagName --jq '.[].tagName | select(test("^R[0-9]+$")) | reverse | .[]')
+                TAGS=$(gh release list --repo "UltimateDoomBuilder/UltimateDoomBuilder" --limit 5 --json tagName --jq '[.[].tagName | select(test("^R[0-9]+$"))] | reverse | .[]')
                 LATEST_TAG=$(echo "$TAGS" | head -1)
                 echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
                 
