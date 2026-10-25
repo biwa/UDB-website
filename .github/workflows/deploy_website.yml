@@ -1,4 +1,4 @@
-name: Deploy Website
+name: Build and Deploy Website
 
 on: [push, workflow_dispatch]
 
@@ -10,64 +10,73 @@ env:
   UPDATER_EXE: Updater.exe
 
 jobs:
-    deploy:
-        name: Deploy Website
-        runs-on: ubuntu-latest
+  build:
+    name: Build Website
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v7
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
-            - name: Prepare output directories
-              run: |
-                mkdir -p "$OUTPUT_DIR/$FILES_DIR"
+      - name: Prepare output directories
+        run: |
+          mkdir -p "$OUTPUT_DIR/$FILES_DIR"
 
-            - name: Download Last 5 Releases
-              run: |
-                # Get the 5 most recent tags in format "Rxxxx", and reverse their order, so that the newest change log files overwrite older ones
-                TAGS=$(gh release list --repo "UltimateDoomBuilder/UltimateDoomBuilder" --limit 5 --json tagName --jq '[.[].tagName | select(test("^R[0-9]+$"))] | reverse | .[]')
-                LATEST_TAG=$(echo "$TAGS" | head -1)
-                echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-                
-                for TAG in $TAGS; do
-                    echo "Downloading assets for $TAG"
-                    gh release download "$TAG" --repo "UltimateDoomBuilder/UltimateDoomBuilder" --dir "$OUTPUT_DIR/$FILES_DIR" --pattern "UltimateDoomBuilder*" --pattern "Changelog*" --clobber
-                done
-              env:
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Last 5 Releases
+        run: |
+          # Get the 5 most recent tags in format "Rxxxx", and reverse their order, so that the newest change log files overwrite older ones
+          TAGS=$(gh release list --repo "UltimateDoomBuilder/UltimateDoomBuilder" --limit 5 --json tagName --jq '[.[].tagName | select(test("^R[0-9]+$"))] | reverse | .[]')
+          LATEST_TAG=$(echo "$TAGS" | head -1)
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          
+          for TAG in $TAGS; do
+              echo "Downloading assets for $TAG"
+              gh release download "$TAG" --repo "UltimateDoomBuilder/UltimateDoomBuilder" --dir "$OUTPUT_DIR/$FILES_DIR" --pattern "UltimateDoomBuilder*" --pattern "Changelog*" --clobber
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Extract Builder.exe and Updater.exe from 7z
-              run: |
-                mkdir -p "$TEMP_DIR"
-                7z e "$OUTPUT_DIR/$FILES_DIR/UltimateDoomBuilder-$LATEST_TAG-x64.7z" "-o$TEMP_DIR" $BUILDER_EXE $UPDATER_EXE -y
-                if [ ! -f "$TEMP_DIR/$BUILDER_EXE" ] || [ ! -f "$TEMP_DIR/$UPDATER_EXE" ]; then
-                    echo "Extraction failed: $BUILDER_EXE or $UPDATER_EXE not found in $TEMP_DIR"
-                    exit 1
-                fi
+      - name: Extract Builder.exe and Updater.exe from 7z
+        run: |
+          mkdir -p "$TEMP_DIR"
+          7z e "$OUTPUT_DIR/$FILES_DIR/UltimateDoomBuilder-$LATEST_TAG-x64.7z" "-o$TEMP_DIR" $BUILDER_EXE $UPDATER_EXE -y
+          if [ ! -f "$TEMP_DIR/$BUILDER_EXE" ] || [ ! -f "$TEMP_DIR/$UPDATER_EXE" ]; then
+              echo "Extraction failed: $BUILDER_EXE or $UPDATER_EXE not found in $TEMP_DIR"
+              exit 1
+          fi
 
-            - name: Get Revisions And Create Version Files
-              shell: pwsh
-              run: |
-                  $extractedBuilderExe = "$env:TEMP_DIR/$env:BUILDER_EXE"
-                  $extractedUpdaterExe = "$env:TEMP_DIR/$env:UPDATER_EXE"
-                  try {
-                      # We wouldn't really need the version from Builder, because we know it already, but whatever
-                      $builderRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedBuilderExe).ProductPrivatePart
-                      $updaterRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedUpdaterExe).ProductPrivatePart
-                      Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Version.txt"
-                      Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
-                      Write-Host "$updaterRev" >> "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
-                  }
-                  catch {
-                      Write-Error $_.Exception.Message
-                      exit 1
-                  }
+      - name: Get Revisions And Create Version Files
+        shell: pwsh
+        run: |
+            $extractedBuilderExe = "$env:TEMP_DIR/$env:BUILDER_EXE"
+            $extractedUpdaterExe = "$env:TEMP_DIR/$env:UPDATER_EXE"
+            try {
+                # We wouldn't really need the version from Builder, because we know it already, but whatever
+                $builderRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedBuilderExe).ProductPrivatePart
+                $updaterRev = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($extractedUpdaterExe).ProductPrivatePart
+                Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Version.txt"
+                Write-Host "$builderRev" > "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
+                Write-Host "$updaterRev" >> "$env:OUTPUT_DIR/$FILES_DIR/Versions.txt"
+            }
+            catch {
+                Write-Error $_.Exception.Message
+                exit 1
+            }
 
-            - name: Upload Website Artifact
-              uses: actions/upload-pages-artifact@v4
-              with:
-                path: "${{ env.OUTPUT_DIR }}"
+      - name: Upload Website Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: "${{ env.OUTPUT_DIR }}"
 
-            - name: Deploy To GitHub Pages
-              id: deployment
-              uses: actions/deploy-pages@v4                      
+  deploy:
+    name: Deploy Website
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Deploy To GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4          
